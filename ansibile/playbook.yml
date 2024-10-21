@@ -1,0 +1,70 @@
+---
+- name: Deploy Node.js application from GitHub
+  hosts: web_server
+  become: true
+  vars:
+    repo_url: "https://github.com/amnkashp/webclues-infotech-test.git"
+    app_directory: "/var/www/webclues-infotech-test"
+    
+
+  tasks:
+    - name: Ensure Python is installed
+      apt:
+        name: python3
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - nodejs
+          - npm
+        state: present
+        update_cache: yes
+
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Clone the repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_directory }}"
+        version: main  
+        force: yes
+
+    - name: Install npm dependencies
+      npm:
+        path: "{{ app_directory }}"
+        state: present
+        executable: npm
+        production: true  
+
+    - name: Install PM2 globally
+      npm:
+        name: pm2
+        global: yes
+
+    - name: Start the application using pm2
+      command: pm2 start npm --name "webclues-app" -- start
+      args:
+        chdir: "{{ app_directory }}"
+
+    - name: Ensure pm2 process is started at boot
+      command: pm2 startup
+      register: pm2_startup
+    - name: Save PM2 process list
+      command: pm2 save
+      when: pm2_startup is succeeded
+
+    - name: Ensure application is running
+      wait_for:
+        port: 3000  # Change this to your application's port incase you change the port of the application
+        delay: 5
+        timeout: 30
+        state: started

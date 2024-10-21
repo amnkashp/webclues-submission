@@ -1,0 +1,9 @@
+[web_server]
+0.0.0.0     #Please Put the IP address of the Instance or VM 
+
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=/../id_rsa     # Please mention the full path of the private key 
+ansible_become=yes
+ansible_become_method=sudo
+ansible_becomme_user=root

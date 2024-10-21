@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-application 
+    svc: nginx-application-service
+  name: nginx-deployment
+  namespace: test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-application
+      svc: nginx-application-service
+  template:
+    metadata:
+      labels:
+        app: nginx-application
+        svc: nginx-application-service
+    spec:
+      # imagePullSecrets:  # using incase private registry or image
+      # - name: dockerhub-cred  # name of the secrets created for registry 
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx-container
+        resources:
+          requests:
+            memory: "128Mi" 
+            cpu: "250m" d
+          limits:
+            memory: "256Mi" 
+            cpu: "500m"
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /    # Replace with your application's health check endpoint
+            port: 80
+          initialDelaySeconds: 10  
+          periodSeconds: 5         
+          failureThreshold: 3      
+        readinessProbe:
+          httpGet:
+            path: /    # Replace with your application's readiness check endpoint
+            port: 80
+          initialDelaySeconds: 5   
+          periodSeconds: 5         
+          failureThreshold: 3
+        # env: # Add the env variable here
+        # - name: PORT
+        #   value: "80"      
+      restartPolicy: Always
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: test
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: nginx-application
+    svc: nginx-application-service
+  type: ClusterIP
